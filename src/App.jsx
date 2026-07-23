@@ -76,7 +76,15 @@ function OrchestrationBandNode({ data }) {
 }
 
 function CaptionNode({ data }) {
-  return <div className="caption-node">{data.title}</div>;
+  return (
+    <div className="caption-node">
+      <Handle id="top" type="target" position={Position.Top} className="handle" />
+      <Handle id="left" type="target" position={Position.Left} className="handle" />
+      {data.title}
+      <Handle id="right" type="source" position={Position.Right} className="handle" />
+      <Handle id="bottom" type="source" position={Position.Bottom} className="handle" />
+    </div>
+  );
 }
 
 const nodeTypes = {
@@ -128,6 +136,8 @@ function edge(id, source, target, options = {}) {
     sourceHandle = 'right',
     targetHandle = 'left',
     color = animated ? '#76b900' : '#66727d',
+    zIndex = animated ? 4 : 3,
+    type = 'straight',
   } = options;
 
   return {
@@ -138,14 +148,14 @@ function edge(id, source, target, options = {}) {
     animated,
     sourceHandle,
     targetHandle,
-    type: 'smoothstep',
+    type,
     markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color },
     style: { stroke: color, strokeWidth: animated ? 2.7 : 1.8 },
     labelStyle: { fill: '#edf6ff', fontSize: 10.5, fontWeight: 900 },
     labelBgStyle: { fill: '#071018', fillOpacity: 0.96 },
     labelBgPadding: [7, 4],
     labelShowBg: Boolean(label),
-    zIndex: animated ? 5 : 3,
+    zIndex,
   };
 }
 
@@ -177,21 +187,41 @@ function buildGraph(pattern) {
       id: 'orchestration-band',
       type: 'orchestrationBand',
       data: { title: `${pattern.label} · Agentic Orchestration` },
-      position: { x: -70, y: 300 },
+      position: { x: -70, y: 330 },
       draggable: false,
       selectable: false,
       focusable: false,
-      style: { width: 1830, height: 610, zIndex: 0 },
+      style: { width: 1830, height: 655, zIndex: 1 },
     },
     {
       id: 'delegate-caption',
       type: 'caption',
       data: { title: 'delegates to specialized agents' },
-      position: { x: 710, y: 252 },
+      position: { x: 710, y: 278 },
       draggable: false,
       selectable: false,
       focusable: false,
-      style: { width: 270, height: 32, zIndex: 6 },
+      style: { width: 270, height: 32, zIndex: 7 },
+    },
+    {
+      id: 'support-caption',
+      type: 'caption',
+      data: { title: 'shared support layer used by all agents' },
+      position: { x: 685, y: 660 },
+      draggable: false,
+      selectable: false,
+      focusable: false,
+      style: { width: 330, height: 32, zIndex: 7 },
+    },
+    {
+      id: 'evidence-caption',
+      type: 'caption',
+      data: { title: 'agent outputs → evidence / harness' },
+      position: { x: 700, y: 612 },
+      draggable: false,
+      selectable: false,
+      focusable: false,
+      style: { width: 310, height: 32, zIndex: 7 },
     },
     makeNode(
       'intent',
@@ -201,7 +231,7 @@ function buildGraph(pattern) {
       'One intent starts the process. The Super Agent interprets it and selects the orchestration pattern, data, agents, tools, LLMs and harness controls.',
       20,
       35,
-      { zIndex: 4 },
+      { zIndex: 5 },
     ),
     makeNode(
       'super',
@@ -211,7 +241,7 @@ function buildGraph(pattern) {
       'The single mission orchestrator. It decomposes the intent, selects specialized agents, calls NVIDIA tools and LLM services, checks rules, and assembles the governed outcome package.',
       690,
       25,
-      { icon: Sparkles, zIndex: 4 },
+      { icon: Sparkles, zIndex: 5 },
     ),
     makeNode(
       'outcome',
@@ -221,7 +251,7 @@ function buildGraph(pattern) {
       pattern.outcome,
       1360,
       35,
-      { icon: CheckCircle2, zIndex: 4 },
+      { icon: CheckCircle2, zIndex: 5 },
     ),
     ...visibleAgents.map((agent, index) =>
       makeNode(
@@ -231,8 +261,8 @@ function buildGraph(pattern) {
         agent.role,
         `${agent.role}\n\nInput: ${agent.input}\n\nOutput: ${agent.output}\n\nNVIDIA call: ${agent.nvidia}\n\nEvidence returned: ${agent.evidence}`,
         agentX[index],
-        440,
-        { icon: iconForAgent(agent.name) },
+        480,
+        { icon: iconForAgent(agent.name), zIndex: 6 },
       ),
     ),
     makeNode(
@@ -242,7 +272,8 @@ function buildGraph(pattern) {
       shortList(pattern.context, 3),
       `Controlled enterprise/context data used to ground the mission:\n${pattern.context.map((item) => `• ${item}`).join('\n')}`,
       supportX[0],
-      705,
+      755,
+      { zIndex: 6 },
     ),
     makeNode(
       'memory',
@@ -251,7 +282,8 @@ function buildGraph(pattern) {
       'prior cases · lessons · retrieval',
       'Long-lived reusable knowledge and retrieval layer: previous AI Factory records, lessons learned, indexed DSX content, similarity search and evidence reranking.',
       supportX[1],
-      705,
+      755,
+      { zIndex: 6 },
     ),
     makeNode(
       'rules',
@@ -260,7 +292,8 @@ function buildGraph(pattern) {
       'DSX · OCP · deviations',
       'Explicit rules and constraints: DSX baseline logic, OCP or domain best practices, deviation policies and approval requirements.',
       supportX[2],
-      705,
+      755,
+      { zIndex: 6 },
     ),
     makeNode(
       'tools',
@@ -269,7 +302,8 @@ function buildGraph(pattern) {
       shortList(pattern.tools, 3),
       `Deterministic services, engineering tools or NVIDIA platform calls selected for this mission:\n${pattern.tools.map((tool) => `• ${tool}`).join('\n')}`,
       supportX[3],
-      705,
+      755,
+      { zIndex: 6 },
     ),
     makeNode(
       'llms',
@@ -278,7 +312,8 @@ function buildGraph(pattern) {
       'NIM reasoning · report generation',
       'Reasoning and generation models called by the specialized agents, typically exposed through NVIDIA NIM-hosted services or equivalent controlled endpoints.',
       supportX[4],
-      705,
+      755,
+      { zIndex: 6 },
     ),
     makeNode(
       'harness',
@@ -287,23 +322,25 @@ function buildGraph(pattern) {
       'schema · evidence · approvals',
       `Mandatory controls for this mission:\n${pattern.gates.map((gate) => `• ${gate}`).join('\n')}`,
       supportX[5],
-      705,
+      755,
+      { zIndex: 6 },
     ),
   ];
 
   const edges = [
-    edge('intent-super', 'intent', 'super', { label: 'mission', animated: true }),
-    edge('super-outcome', 'super', 'outcome', { label: 'governed package', animated: true }),
-    edge('data-memory', 'data', 'memory', { label: 'index', color: '#f5a400' }),
-    edge('memory-rules', 'memory', 'rules', { label: 'retrieve' }),
-    edge('rules-tools', 'rules', 'tools', { label: 'constrain', color: '#f5a400' }),
-    edge('tools-llms', 'tools', 'llms', { label: 'call', color: '#f5a400' }),
-    edge('llms-harness', 'llms', 'harness', { label: 'validate' }),
+    edge('intent-super', 'intent', 'super', { label: 'mission', animated: true, zIndex: 5 }),
+    edge('super-outcome', 'super', 'outcome', { label: 'governed package', animated: true, zIndex: 5 }),
+    edge('data-memory', 'data', 'memory', { label: 'index', color: '#f5a400', zIndex: 4 }),
+    edge('memory-rules', 'memory', 'rules', { label: 'retrieve', zIndex: 4 }),
+    edge('rules-tools', 'rules', 'tools', { label: 'constrain', color: '#f5a400', zIndex: 4 }),
+    edge('tools-llms', 'tools', 'llms', { label: 'call', color: '#f5a400', zIndex: 4 }),
+    edge('llms-harness', 'llms', 'harness', { label: 'validate', zIndex: 4 }),
     edge('harness-outcome', 'harness', 'outcome', {
       animated: true,
       sourceHandle: 'right',
       targetHandle: 'bottom',
       label: 'approve',
+      zIndex: 5,
     }),
   ];
 
@@ -313,17 +350,29 @@ function buildGraph(pattern) {
         animated: true,
         sourceHandle: 'bottom',
         targetHandle: 'top',
+        zIndex: 0,
+      }),
+      edge(`agent-output-${index}`, `agent-${index}`, 'evidence-caption', {
+        sourceHandle: 'bottom',
+        targetHandle: 'top',
+        zIndex: 3,
       }),
     );
   });
 
   edges.push(
-    edge('agent-0-data', 'agent-0', 'data', { sourceHandle: 'bottom', targetHandle: 'top' }),
-    edge('agent-1-memory', 'agent-1', 'memory', { sourceHandle: 'bottom', targetHandle: 'top' }),
-    edge('agent-2-rules', 'agent-2', 'rules', { sourceHandle: 'bottom', targetHandle: 'top' }),
-    edge('agent-3-tools', 'agent-3', 'tools', { sourceHandle: 'bottom', targetHandle: 'top' }),
-    edge('agent-4-llms', 'agent-4', 'llms', { sourceHandle: 'bottom', targetHandle: 'top' }),
-    edge('agent-4-harness', 'agent-4', 'harness', { sourceHandle: 'bottom', targetHandle: 'top' }),
+    edge('output-harness', 'evidence-caption', 'harness', {
+      sourceHandle: 'right',
+      targetHandle: 'top',
+      label: 'evidence',
+      color: '#76b900',
+      zIndex: 4,
+    }),
+    edge('support-data', 'support-caption', 'data', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
+    edge('support-memory', 'support-caption', 'memory', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
+    edge('support-rules', 'support-caption', 'rules', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
+    edge('support-tools', 'support-caption', 'tools', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
+    edge('support-llms', 'support-caption', 'llms', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
   );
 
   return { nodes, edges };
@@ -348,7 +397,7 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
   const fit = useCallback(
     (duration = 500) => {
       requestAnimationFrame(() => {
-        reactFlow.fitView({ padding: 0.08, duration, includeHiddenNodes: false, minZoom: 0.42, maxZoom: 0.92 });
+        reactFlow.fitView({ padding: 0.06, duration, includeHiddenNodes: false, minZoom: 0.38, maxZoom: 0.9 });
       });
     },
     [reactFlow],
@@ -378,8 +427,8 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
         if (selectedNode.data?.details) onSelectNode(selectedNode.data);
       }}
       fitView
-      fitViewOptions={{ padding: 0.08, minZoom: 0.42, maxZoom: 0.92 }}
-      minZoom={0.3}
+      fitViewOptions={{ padding: 0.06, minZoom: 0.38, maxZoom: 0.9 }}
+      minZoom={0.28}
       maxZoom={1.55}
       snapToGrid
       snapGrid={[12, 12]}
@@ -390,7 +439,7 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
       <Controls className="rf-controls" showInteractive={false} />
       <Panel position="top-left" className="diagram-panel">
         <button onClick={() => fit(550)} type="button">Fit view</button>
-        <span>One intent → one Super Agent → one outcome · repeated edge labels removed</span>
+        <span>One intent → one Super Agent → one outcome · straight links · shared support layer</span>
       </Panel>
     </ReactFlow>
   );
@@ -493,7 +542,7 @@ function AppShell() {
           <div className="diagram-header">
             <div>
               <h2>{pattern.label}</h2>
-              <p>Intent → Super Agent → Outcome at the top. Below: specialized agents and support layers with minimal labels.</p>
+              <p>Intent → Super Agent → Outcome at the top. Below: specialized agents, shared support layer and evidence/harness controls.</p>
             </div>
             <span className="active-badge">{pattern.short}</span>
           </div>
