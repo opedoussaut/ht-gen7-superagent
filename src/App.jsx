@@ -75,7 +75,15 @@ function OrchestrationBandNode({ data }) {
   );
 }
 
-const nodeTypes = { architecture: ArchitectureNode, orchestrationBand: OrchestrationBandNode };
+function CaptionNode({ data }) {
+  return <div className="caption-node">{data.title}</div>;
+}
+
+const nodeTypes = {
+  architecture: ArchitectureNode,
+  orchestrationBand: OrchestrationBandNode,
+  caption: CaptionNode,
+};
 
 function iconForAgent(agentName) {
   const name = agentName.toLowerCase();
@@ -136,7 +144,7 @@ function edge(id, source, target, options = {}) {
     labelStyle: { fill: '#edf6ff', fontSize: 10.5, fontWeight: 900 },
     labelBgStyle: { fill: '#071018', fillOpacity: 0.96 },
     labelBgPadding: [7, 4],
-    labelShowBg: true,
+    labelShowBg: Boolean(label),
     zIndex: animated ? 5 : 3,
   };
 }
@@ -145,7 +153,7 @@ function makeNode(id, kind, title, subtitle, details, x, y, opts = {}) {
   const size = opts.size ?? sizeForKind(kind);
   return {
     id,
-    type: 'architecture',
+    type: opts.type ?? 'architecture',
     data: { kind, title, subtitle, details, icon: opts.icon },
     position: { x, y },
     width: size.width,
@@ -154,22 +162,36 @@ function makeNode(id, kind, title, subtitle, details, x, y, opts = {}) {
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     draggable: opts.draggable ?? true,
+    selectable: opts.selectable ?? true,
+    focusable: opts.focusable ?? true,
   };
 }
 
 function buildGraph(pattern) {
   const visibleAgents = pattern.agents.slice(0, 5);
+  const agentX = [20, 342, 664, 986, 1308];
+  const supportX = [20, 300, 580, 860, 1140, 1420];
 
   const nodes = [
     {
       id: 'orchestration-band',
       type: 'orchestrationBand',
       data: { title: `${pattern.label} · Agentic Orchestration` },
-      position: { x: -70, y: 235 },
+      position: { x: -70, y: 300 },
       draggable: false,
       selectable: false,
       focusable: false,
-      style: { width: 1570, height: 555, zIndex: 0 },
+      style: { width: 1830, height: 610, zIndex: 0 },
+    },
+    {
+      id: 'delegate-caption',
+      type: 'caption',
+      data: { title: 'delegates to specialized agents' },
+      position: { x: 710, y: 252 },
+      draggable: false,
+      selectable: false,
+      focusable: false,
+      style: { width: 270, height: 32, zIndex: 6 },
     },
     makeNode(
       'intent',
@@ -177,7 +199,7 @@ function buildGraph(pattern) {
       pattern.intentLabel,
       'Natural-language mission request',
       'One intent starts the process. The Super Agent interprets it and selects the orchestration pattern, data, agents, tools, LLMs and harness controls.',
-      10,
+      20,
       35,
       { zIndex: 4 },
     ),
@@ -187,7 +209,7 @@ function buildGraph(pattern) {
       'AI Factory Super Agent',
       'Planning and orchestration',
       'The single mission orchestrator. It decomposes the intent, selects specialized agents, calls NVIDIA tools and LLM services, checks rules, and assembles the governed outcome package.',
-      560,
+      690,
       25,
       { icon: Sparkles, zIndex: 4 },
     ),
@@ -197,7 +219,7 @@ function buildGraph(pattern) {
       pattern.outcomeTitle,
       'Governed outcome package',
       pattern.outcome,
-      1120,
+      1360,
       35,
       { icon: CheckCircle2, zIndex: 4 },
     ),
@@ -208,8 +230,8 @@ function buildGraph(pattern) {
         visibleAgentName(agent.name),
         agent.role,
         `${agent.role}\n\nInput: ${agent.input}\n\nOutput: ${agent.output}\n\nNVIDIA call: ${agent.nvidia}\n\nEvidence returned: ${agent.evidence}`,
-        [10, 305, 600, 895, 1190][index],
-        365,
+        agentX[index],
+        440,
         { icon: iconForAgent(agent.name) },
       ),
     ),
@@ -219,8 +241,8 @@ function buildGraph(pattern) {
       'Data',
       shortList(pattern.context, 3),
       `Controlled enterprise/context data used to ground the mission:\n${pattern.context.map((item) => `• ${item}`).join('\n')}`,
-      10,
-      610,
+      supportX[0],
+      705,
     ),
     makeNode(
       'memory',
@@ -228,8 +250,8 @@ function buildGraph(pattern) {
       'Memory / RAG',
       'prior cases · lessons · retrieval',
       'Long-lived reusable knowledge and retrieval layer: previous AI Factory records, lessons learned, indexed DSX content, similarity search and evidence reranking.',
-      250,
-      610,
+      supportX[1],
+      705,
     ),
     makeNode(
       'rules',
@@ -237,8 +259,8 @@ function buildGraph(pattern) {
       'Rules',
       'DSX · OCP · deviations',
       'Explicit rules and constraints: DSX baseline logic, OCP or domain best practices, deviation policies and approval requirements.',
-      490,
-      610,
+      supportX[2],
+      705,
     ),
     makeNode(
       'tools',
@@ -246,8 +268,8 @@ function buildGraph(pattern) {
       'Tools / Services',
       shortList(pattern.tools, 3),
       `Deterministic services, engineering tools or NVIDIA platform calls selected for this mission:\n${pattern.tools.map((tool) => `• ${tool}`).join('\n')}`,
-      730,
-      610,
+      supportX[3],
+      705,
     ),
     makeNode(
       'llms',
@@ -255,8 +277,8 @@ function buildGraph(pattern) {
       'LLMs',
       'NIM reasoning · report generation',
       'Reasoning and generation models called by the specialized agents, typically exposed through NVIDIA NIM-hosted services or equivalent controlled endpoints.',
-      970,
-      610,
+      supportX[4],
+      705,
     ),
     makeNode(
       'harness',
@@ -264,8 +286,8 @@ function buildGraph(pattern) {
       'Harness',
       'schema · evidence · approvals',
       `Mandatory controls for this mission:\n${pattern.gates.map((gate) => `• ${gate}`).join('\n')}`,
-      1210,
-      610,
+      supportX[5],
+      705,
     ),
   ];
 
@@ -291,29 +313,28 @@ function buildGraph(pattern) {
         animated: true,
         sourceHandle: 'bottom',
         targetHandle: 'top',
-        label: 'delegate',
       }),
     );
   });
 
   edges.push(
-    edge('agent-0-data', 'agent-0', 'data', { sourceHandle: 'bottom', targetHandle: 'top', label: 'consult' }),
-    edge('agent-1-memory', 'agent-1', 'memory', { sourceHandle: 'bottom', targetHandle: 'top', label: 'retrieve' }),
-    edge('agent-2-rules', 'agent-2', 'rules', { sourceHandle: 'bottom', targetHandle: 'top', label: 'check' }),
-    edge('agent-3-tools', 'agent-3', 'tools', { sourceHandle: 'bottom', targetHandle: 'top', label: 'call' }),
-    edge('agent-4-llms', 'agent-4', 'llms', { sourceHandle: 'bottom', targetHandle: 'top', label: 'reason' }),
-    edge('agents-harness', 'agent-4', 'harness', { sourceHandle: 'bottom', targetHandle: 'top', label: 'evidence' }),
+    edge('agent-0-data', 'agent-0', 'data', { sourceHandle: 'bottom', targetHandle: 'top' }),
+    edge('agent-1-memory', 'agent-1', 'memory', { sourceHandle: 'bottom', targetHandle: 'top' }),
+    edge('agent-2-rules', 'agent-2', 'rules', { sourceHandle: 'bottom', targetHandle: 'top' }),
+    edge('agent-3-tools', 'agent-3', 'tools', { sourceHandle: 'bottom', targetHandle: 'top' }),
+    edge('agent-4-llms', 'agent-4', 'llms', { sourceHandle: 'bottom', targetHandle: 'top' }),
+    edge('agent-4-harness', 'agent-4', 'harness', { sourceHandle: 'bottom', targetHandle: 'top' }),
   );
 
   return { nodes, edges };
 }
 
 function sizeForKind(kind) {
-  if (kind === 'super' || kind === 'outcome') return { width: 340, height: 128 };
-  if (kind === 'intent') return { width: 320, height: 116 };
-  if (kind === 'agent') return { width: 270, height: 118 };
+  if (kind === 'super' || kind === 'outcome') return { width: 360, height: 130 };
+  if (kind === 'intent') return { width: 340, height: 118 };
+  if (kind === 'agent') return { width: 292, height: 124 };
   if (kind === 'data' || kind === 'memory' || kind === 'rules' || kind === 'tool' || kind === 'llm' || kind === 'harness') {
-    return { width: 220, height: 116 };
+    return { width: 250, height: 118 };
   }
   return { width: 300, height: 112 };
 }
@@ -327,7 +348,7 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
   const fit = useCallback(
     (duration = 500) => {
       requestAnimationFrame(() => {
-        reactFlow.fitView({ padding: 0.13, duration, includeHiddenNodes: false });
+        reactFlow.fitView({ padding: 0.08, duration, includeHiddenNodes: false, minZoom: 0.42, maxZoom: 0.92 });
       });
     },
     [reactFlow],
@@ -357,9 +378,9 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
         if (selectedNode.data?.details) onSelectNode(selectedNode.data);
       }}
       fitView
-      fitViewOptions={{ padding: 0.13 }}
-      minZoom={0.25}
-      maxZoom={1.75}
+      fitViewOptions={{ padding: 0.08, minZoom: 0.42, maxZoom: 0.92 }}
+      minZoom={0.3}
+      maxZoom={1.55}
       snapToGrid
       snapGrid={[12, 12]}
       proOptions={{ hideAttribution: true }}
@@ -369,7 +390,7 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
       <Controls className="rf-controls" showInteractive={false} />
       <Panel position="top-left" className="diagram-panel">
         <button onClick={() => fit(550)} type="button">Fit view</button>
-        <span>One intent → one Super Agent → one outcome · orchestration details below</span>
+        <span>One intent → one Super Agent → one outcome · repeated edge labels removed</span>
       </Panel>
     </ReactFlow>
   );
@@ -401,8 +422,6 @@ function AppShell() {
       outcome: pattern.outcomeTitle,
       specializedAgents: pattern.agents,
       data: pattern.context,
-      memory: 'RAG / previous cases / lessons learned / indexed DSX content',
-      rules: 'DSX rules / OCP rules / deviation policies',
       toolsAndLLMs: pattern.tools,
       harnessGates: pattern.gates,
     };
@@ -462,7 +481,7 @@ function AppShell() {
             <div><span>Outcome</span><strong>{pattern.outcomeKind}</strong></div>
           </div>
           <div className="legend">
-            {Object.entries({ intent: 'Intent', data: 'Data', memory: 'Memory/RAG', rules: 'Rules', agent: 'Agent', tool: 'Tool', llm: 'LLM', harness: 'Harness', outcome: 'Outcome' }).map(([kind, label]) => (
+            {Object.entries({ intent: 'Intent', data: 'Data', memory: 'Memory', rules: 'Rules', agent: 'Agent', tool: 'Tool', llm: 'LLM', harness: 'Harness', outcome: 'Outcome' }).map(([kind, label]) => (
               <span key={kind}><i style={{ background: nodeColor(kind) }} />{label}</span>
             ))}
           </div>
@@ -474,7 +493,7 @@ function AppShell() {
           <div className="diagram-header">
             <div>
               <h2>{pattern.label}</h2>
-              <p>Intent → Super Agent → Outcome at the top. The orchestration band below separates agents, data, memory/RAG, rules, tools, LLMs and harness.</p>
+              <p>Intent → Super Agent → Outcome at the top. Below: specialized agents and support layers with minimal labels.</p>
             </div>
             <span className="active-badge">{pattern.short}</span>
           </div>
