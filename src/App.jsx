@@ -31,19 +31,17 @@ import {
 } from 'lucide-react';
 import { EXAMPLE_INTENTS, ORCHESTRATION_PATTERNS, detectPattern } from './data.js';
 
-const nodeTypes = { architecture: ArchitectureNode, orchestrationBand: OrchestrationBandNode };
-
 const KIND_META = {
-  intent: { label: 'Intent', Icon: Fingerprint },
-  data: { label: 'Data', Icon: Database },
-  memory: { label: 'Memory / RAG', Icon: HardDrive },
-  rules: { label: 'Rules', Icon: ShieldCheck },
-  super: { label: 'Super Agent', Icon: Sparkles },
-  agent: { label: 'Specialized Agent', Icon: Bot },
-  tool: { label: 'Tool / Service', Icon: Wrench },
-  llm: { label: 'LLM / Reasoning', Icon: BrainCircuit },
-  harness: { label: 'Harness', Icon: CheckCircle2 },
-  outcome: { label: 'Outcome', Icon: PackageCheck },
+  intent: { label: 'Intent', Icon: Fingerprint, dot: '#4c78ff' },
+  data: { label: 'Data', Icon: Database, dot: '#e67e22' },
+  memory: { label: 'Memory / RAG', Icon: HardDrive, dot: '#60707d' },
+  rules: { label: 'Rules', Icon: ShieldCheck, dot: '#f5a400' },
+  super: { label: 'Super Agent', Icon: Sparkles, dot: '#76b900' },
+  agent: { label: 'Specialized Agent', Icon: Bot, dot: '#ff5a4f' },
+  tool: { label: 'Tools / Services', Icon: Wrench, dot: '#f5a400' },
+  llm: { label: 'LLMs', Icon: BrainCircuit, dot: '#9b6cff' },
+  harness: { label: 'Harness', Icon: CheckCircle2, dot: '#f5a400' },
+  outcome: { label: 'Outcome', Icon: PackageCheck, dot: '#76b900' },
 };
 
 function ArchitectureNode({ data, selected }) {
@@ -77,6 +75,8 @@ function OrchestrationBandNode({ data }) {
   );
 }
 
+const nodeTypes = { architecture: ArchitectureNode, orchestrationBand: OrchestrationBandNode };
+
 function iconForAgent(agentName) {
   const name = agentName.toLowerCase();
   if (name.includes('power') || name.includes('cooling') || name.includes('thermal')) return Zap;
@@ -93,8 +93,8 @@ function visibleAgentName(name) {
     .replace('Requirement Extraction Agent', 'Requirement Extract')
     .replace('Requirements Agent', 'Requirements')
     .replace('Simulation Planner Agent', 'Simulation Planner')
-    .replace('Power Simulation Agent', 'Power Agent')
-    .replace('Cooling / Thermal Agent', 'Cooling Agent')
+    .replace('Power Simulation Agent', 'Power Simulation')
+    .replace('Cooling / Thermal Agent', 'Cooling / Thermal')
     .replace('Interface Compatibility Agent', 'Interface Check')
     .replace('BOM / Lead-Time Agent', 'BOM / Lead Time')
     .replace('Compute / Network Agent', 'Compute / Network')
@@ -114,7 +114,14 @@ function shortList(items, max = 3) {
 }
 
 function edge(id, source, target, options = {}) {
-  const { label = '', animated = false, sourceHandle = 'right', targetHandle = 'left' } = options;
+  const {
+    label = '',
+    animated = false,
+    sourceHandle = 'right',
+    targetHandle = 'left',
+    color = animated ? '#76b900' : '#66727d',
+  } = options;
+
   return {
     id,
     source,
@@ -124,17 +131,17 @@ function edge(id, source, target, options = {}) {
     sourceHandle,
     targetHandle,
     type: 'smoothstep',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
-    style: animated
-      ? { stroke: '#76b900', strokeWidth: 2.6 }
-      : { stroke: '#65727d', strokeWidth: 1.65 },
-    labelStyle: { fill: '#dce7ef', fontSize: 10, fontWeight: 800 },
-    labelBgStyle: { fill: '#071018', fillOpacity: 0.92 },
-    labelBgPadding: [6, 3],
+    markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color },
+    style: { stroke: color, strokeWidth: animated ? 2.7 : 1.8 },
+    labelStyle: { fill: '#edf6ff', fontSize: 10.5, fontWeight: 900 },
+    labelBgStyle: { fill: '#071018', fillOpacity: 0.96 },
+    labelBgPadding: [7, 4],
+    labelShowBg: true,
+    zIndex: animated ? 5 : 3,
   };
 }
 
-function node(id, kind, title, subtitle, details, x, y, opts = {}) {
+function makeNode(id, kind, title, subtitle, details, x, y, opts = {}) {
   const size = opts.size ?? sizeForKind(kind);
   return {
     id,
@@ -146,131 +153,129 @@ function node(id, kind, title, subtitle, details, x, y, opts = {}) {
     style: { width: size.width, height: size.height, zIndex: opts.zIndex ?? 2 },
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
+    draggable: opts.draggable ?? true,
   };
 }
 
 function buildGraph(pattern) {
   const visibleAgents = pattern.agents.slice(0, 5);
-  const agentXs = [40, 300, 560, 820, 1080];
-  const bottomXs = [40, 255, 470, 685, 900, 1115];
 
   const nodes = [
     {
       id: 'orchestration-band',
       type: 'orchestrationBand',
       data: { title: `${pattern.label} · Agentic Orchestration` },
-      position: { x: -30, y: 205 },
+      position: { x: -70, y: 235 },
       draggable: false,
       selectable: false,
       focusable: false,
-      style: { width: 1415, height: 455, zIndex: 0 },
+      style: { width: 1570, height: 555, zIndex: 0 },
     },
-    node(
+    makeNode(
       'intent',
       'intent',
       pattern.intentLabel,
       'Natural-language mission request',
       'One intent starts the process. The Super Agent interprets it and selects the orchestration pattern, data, agents, tools, LLMs and harness controls.',
-      40,
-      20,
-      { zIndex: 3 },
+      10,
+      35,
+      { zIndex: 4 },
     ),
-    node(
+    makeNode(
       'super',
       'super',
       'AI Factory Super Agent',
       'Planning and orchestration',
       'The single mission orchestrator. It decomposes the intent, selects specialized agents, calls NVIDIA tools and LLM services, checks rules, and assembles the governed outcome package.',
-      505,
-      10,
-      { icon: Sparkles, zIndex: 3 },
+      560,
+      25,
+      { icon: Sparkles, zIndex: 4 },
     ),
-    node(
+    makeNode(
       'outcome',
       'outcome',
       pattern.outcomeTitle,
       'Governed outcome package',
       pattern.outcome,
-      975,
-      20,
-      { icon: CheckCircle2, zIndex: 3 },
+      1120,
+      35,
+      { icon: CheckCircle2, zIndex: 4 },
     ),
     ...visibleAgents.map((agent, index) =>
-      node(
+      makeNode(
         `agent-${index}`,
         'agent',
         visibleAgentName(agent.name),
         agent.role,
         `${agent.role}\n\nInput: ${agent.input}\n\nOutput: ${agent.output}\n\nNVIDIA call: ${agent.nvidia}\n\nEvidence returned: ${agent.evidence}`,
-        agentXs[index],
-        305,
+        [10, 305, 600, 895, 1190][index],
+        365,
         { icon: iconForAgent(agent.name) },
       ),
     ),
-    node(
+    makeNode(
       'data',
       'data',
       'Data',
       shortList(pattern.context, 3),
       `Controlled enterprise/context data used to ground the mission:\n${pattern.context.map((item) => `• ${item}`).join('\n')}`,
-      bottomXs[0],
-      500,
+      10,
+      610,
     ),
-    node(
+    makeNode(
       'memory',
       'memory',
       'Memory / RAG',
       'prior cases · lessons · retrieval',
       'Long-lived reusable knowledge and retrieval layer: previous AI Factory records, lessons learned, indexed DSX content, similarity search and evidence reranking.',
-      bottomXs[1],
-      500,
+      250,
+      610,
     ),
-    node(
+    makeNode(
       'rules',
       'rules',
       'Rules',
       'DSX · OCP · deviations',
       'Explicit rules and constraints: DSX baseline logic, OCP or domain best practices, deviation policies and approval requirements.',
-      bottomXs[2],
-      500,
+      490,
+      610,
     ),
-    node(
+    makeNode(
       'tools',
       'tool',
       'Tools / Services',
       shortList(pattern.tools, 3),
       `Deterministic services, engineering tools or NVIDIA platform calls selected for this mission:\n${pattern.tools.map((tool) => `• ${tool}`).join('\n')}`,
-      bottomXs[3],
-      500,
+      730,
+      610,
     ),
-    node(
+    makeNode(
       'llms',
       'llm',
       'LLMs',
       'NIM reasoning · report generation',
       'Reasoning and generation models called by the specialized agents, typically exposed through NVIDIA NIM-hosted services or equivalent controlled endpoints.',
-      bottomXs[4],
-      500,
+      970,
+      610,
     ),
-    node(
+    makeNode(
       'harness',
       'harness',
       'Harness',
       'schema · evidence · approvals',
       `Mandatory controls for this mission:\n${pattern.gates.map((gate) => `• ${gate}`).join('\n')}`,
-      bottomXs[5],
-      500,
+      1210,
+      610,
     ),
   ];
 
   const edges = [
     edge('intent-super', 'intent', 'super', { label: 'mission', animated: true }),
     edge('super-outcome', 'super', 'outcome', { label: 'governed package', animated: true }),
-    edge('super-data', 'super', 'data', { sourceHandle: 'bottom', targetHandle: 'top' }),
-    edge('data-memory', 'data', 'memory', { label: 'index' }),
+    edge('data-memory', 'data', 'memory', { label: 'index', color: '#f5a400' }),
     edge('memory-rules', 'memory', 'rules', { label: 'retrieve' }),
-    edge('rules-tools', 'rules', 'tools', { label: 'constrain' }),
-    edge('tools-llms', 'tools', 'llms', { label: 'call' }),
+    edge('rules-tools', 'rules', 'tools', { label: 'constrain', color: '#f5a400' }),
+    edge('tools-llms', 'tools', 'llms', { label: 'call', color: '#f5a400' }),
     edge('llms-harness', 'llms', 'harness', { label: 'validate' }),
     edge('harness-outcome', 'harness', 'outcome', {
       animated: true,
@@ -286,22 +291,29 @@ function buildGraph(pattern) {
         animated: true,
         sourceHandle: 'bottom',
         targetHandle: 'top',
-      }),
-      edge(`agent-harness-${index}`, `agent-${index}`, 'harness', {
-        sourceHandle: 'bottom',
-        targetHandle: 'top',
+        label: 'delegate',
       }),
     );
   });
+
+  edges.push(
+    edge('agent-0-data', 'agent-0', 'data', { sourceHandle: 'bottom', targetHandle: 'top', label: 'consult' }),
+    edge('agent-1-memory', 'agent-1', 'memory', { sourceHandle: 'bottom', targetHandle: 'top', label: 'retrieve' }),
+    edge('agent-2-rules', 'agent-2', 'rules', { sourceHandle: 'bottom', targetHandle: 'top', label: 'check' }),
+    edge('agent-3-tools', 'agent-3', 'tools', { sourceHandle: 'bottom', targetHandle: 'top', label: 'call' }),
+    edge('agent-4-llms', 'agent-4', 'llms', { sourceHandle: 'bottom', targetHandle: 'top', label: 'reason' }),
+    edge('agents-harness', 'agent-4', 'harness', { sourceHandle: 'bottom', targetHandle: 'top', label: 'evidence' }),
+  );
 
   return { nodes, edges };
 }
 
 function sizeForKind(kind) {
-  if (kind === 'super' || kind === 'outcome') return { width: 320, height: 124 };
-  if (kind === 'agent') return { width: 245, height: 112 };
-  if (kind === 'tool' || kind === 'memory' || kind === 'rules' || kind === 'llm' || kind === 'harness') {
-    return { width: 205, height: 112 };
+  if (kind === 'super' || kind === 'outcome') return { width: 340, height: 128 };
+  if (kind === 'intent') return { width: 320, height: 116 };
+  if (kind === 'agent') return { width: 270, height: 118 };
+  if (kind === 'data' || kind === 'memory' || kind === 'rules' || kind === 'tool' || kind === 'llm' || kind === 'harness') {
+    return { width: 220, height: 116 };
   }
   return { width: 300, height: 112 };
 }
@@ -315,7 +327,7 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
   const fit = useCallback(
     (duration = 500) => {
       requestAnimationFrame(() => {
-        reactFlow.fitView({ padding: 0.12, duration, includeHiddenNodes: false, minZoom: 0.55, maxZoom: 1.15 });
+        reactFlow.fitView({ padding: 0.13, duration, includeHiddenNodes: false });
       });
     },
     [reactFlow],
@@ -324,7 +336,7 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
   useEffect(() => {
     setNodes(graph.nodes);
     setEdges(graph.edges);
-    const t = window.setTimeout(() => fit(650), 90);
+    const t = window.setTimeout(() => fit(650), 120);
     return () => window.clearTimeout(t);
   }, [graph, fit, setEdges, setNodes]);
 
@@ -345,8 +357,8 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
         if (selectedNode.data?.details) onSelectNode(selectedNode.data);
       }}
       fitView
-      fitViewOptions={{ padding: 0.12, minZoom: 0.55, maxZoom: 1.15 }}
-      minZoom={0.35}
+      fitViewOptions={{ padding: 0.13 }}
+      minZoom={0.25}
       maxZoom={1.75}
       snapToGrid
       snapGrid={[12, 12]}
@@ -357,25 +369,14 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
       <Controls className="rf-controls" showInteractive={false} />
       <Panel position="top-left" className="diagram-panel">
         <button onClick={() => fit(550)} type="button">Fit view</button>
-        <span>One intent → one Super Agent → one outcome · details in the side panel</span>
+        <span>One intent → one Super Agent → one outcome · orchestration details below</span>
       </Panel>
     </ReactFlow>
   );
 }
 
 function nodeColor(kind) {
-  return {
-    intent: '#4c78ff',
-    data: '#e67e22',
-    memory: '#60707d',
-    rules: '#f5a400',
-    super: '#76b900',
-    agent: '#ff5a4f',
-    tool: '#f5a400',
-    llm: '#9b6cff',
-    harness: '#f5a400',
-    outcome: '#76b900',
-  }[kind] ?? '#60707d';
+  return KIND_META[kind]?.dot ?? '#60707d';
 }
 
 function AppShell() {
@@ -400,6 +401,8 @@ function AppShell() {
       outcome: pattern.outcomeTitle,
       specializedAgents: pattern.agents,
       data: pattern.context,
+      memory: 'RAG / previous cases / lessons learned / indexed DSX content',
+      rules: 'DSX rules / OCP rules / deviation policies',
       toolsAndLLMs: pattern.tools,
       harnessGates: pattern.gates,
     };
@@ -459,7 +462,7 @@ function AppShell() {
             <div><span>Outcome</span><strong>{pattern.outcomeKind}</strong></div>
           </div>
           <div className="legend">
-            {Object.entries({ intent: 'Intent', data: 'Data', memory: 'Memory', rules: 'Rules', agent: 'Agent', tool: 'Tool', llm: 'LLM', harness: 'Harness', outcome: 'Outcome' }).map(([kind, label]) => (
+            {Object.entries({ intent: 'Intent', data: 'Data', memory: 'Memory/RAG', rules: 'Rules', agent: 'Agent', tool: 'Tool', llm: 'LLM', harness: 'Harness', outcome: 'Outcome' }).map(([kind, label]) => (
               <span key={kind}><i style={{ background: nodeColor(kind) }} />{label}</span>
             ))}
           </div>
@@ -471,7 +474,7 @@ function AppShell() {
           <div className="diagram-header">
             <div>
               <h2>{pattern.label}</h2>
-              <p>Intent → Super Agent → Outcome at the top. Below: Data, Memory/RAG, Rules, Agents, Tools, LLMs and Harness.</p>
+              <p>Intent → Super Agent → Outcome at the top. The orchestration band below separates agents, data, memory/RAG, rules, tools, LLMs and harness.</p>
             </div>
             <span className="active-badge">{pattern.short}</span>
           </div>
