@@ -44,14 +44,53 @@ const KIND_META = {
   outcome: { label: 'Outcome', Icon: PackageCheck, dot: '#76b900' },
 };
 
+const SUPPORT_CONTENT = {
+  token: {
+    memory: ['AI Factory lessons memory', 'prior baselines · reusable decisions', 'Previous AI Factory records, reusable DSX baselines, lesson-learned vectors and precedent evidence.'],
+    rules: ['DSX / expansion rules', 'DSX · water · Rubin expansion', 'DSX reference constraints, expansion rules, water/PUE targets, controlled deviation policies and approval criteria.'],
+    llms: ['Planning LLMs', 'NIM reasoning · report generation', 'NIM-hosted reasoning model for mission planning plus controlled report-generation model for the decision package.'],
+  },
+  requirements: {
+    memory: ['Requirements memory', 'DSX corpus · schemas · examples', 'Indexed RFP/OPR examples, approved requirement schemas, DSX corpus passages and historical clarification patterns.'],
+    rules: ['Requirement rules', 'DSX mapping · deviation logic', 'Requirement schema, DSX rule mapping, missing-information policy and deviation approval logic.'],
+    llms: ['Structured-output LLMs', 'NIM JSON extraction · clarification', 'NIM-hosted LLM constrained to structured JSON extraction, DSX mapping summaries and targeted clarification questions.'],
+  },
+  simulation: {
+    memory: ['Simulation memory', 'prior runs · result lineage · catalog', 'Simulation catalogue, prior run records, accepted model assumptions, surrogate-model references and result-lineage index.'],
+    rules: ['Simulation rules', 'input freeze · validity · no invented result', 'Simulation objective contract, input-freeze requirements, model-validity checks and no-invented-result gate.'],
+    llms: ['Simulation planning LLMs', 'NIM run plan · evidence summary', 'NIM-hosted LLM used to draft the run plan, explain assumptions and summarize only available evidence.'],
+  },
+  openusd: {
+    memory: ['Asset memory', 'asset registry · versions · provenance', 'Supplier asset registry, OpenUSD scene references, SimReady profiles, versions, provenance and prior integrations.'],
+    rules: ['Asset rules', 'SimReady · interface · permissions', 'SimReady metadata requirements, interface compatibility rules, supplier permissions and registration criteria.'],
+    llms: ['Asset-request LLMs', 'NIM request · validation summary', 'NIM-hosted LLM used for structured A2A request drafting and validation summaries grounded in asset metadata.'],
+  },
+  operations: {
+    memory: ['Operations memory', 'incident history · operating twin', 'Incident history, operating twin state, workload placement history, maintenance windows and prior mitigation actions.'],
+    rules: ['Operations rules', 'thermal envelope · policy · approval', 'Operating envelope, workload policy, safe intervention rules, spare-part policies and human approval threshold.'],
+    llms: ['Operations LLMs', 'NIM incident summary · mitigation report', 'NIM-hosted LLM used for incident summarization, mitigation narrative and approval-ready package drafting.'],
+  },
+  interconnect: {
+    memory: ['Interconnect memory', 'topology · catalog · prior routing', 'Logical topology memory, cable catalog, previous routing issues, OpenUSD connection points and OCP/DSX rule snippets.'],
+    rules: ['Interconnect rules', 'bend radius · BOM · DSX compliance', 'Bend-radius rules, cable length thresholds, BOM/lead-time criteria, OCP guidance and DSX compliance checks.'],
+    llms: ['Readiness-report LLMs', 'NIM structured readiness report', 'NIM-hosted LLM constrained to produce a traceable interconnect readiness report with cited rule evidence.'],
+  },
+  robot: {
+    memory: ['Robot service memory', 'procedures · logs · configuration', 'Robot logs, service procedures, part configuration, prior interventions, safety constraints and simulation references.'],
+    rules: ['Robot safety rules', 'approved procedure · safety gate', 'Approved procedure rules, safety boundary, part compatibility checks and technician approval requirements.'],
+    llms: ['Robot-domain LLMs', 'NIM diagnosis · service report', 'NIM-hosted robot/domain LLM for diagnostic reasoning and service report generation under safety constraints.'],
+  },
+};
+
 function ArchitectureNode({ data, selected }) {
   const meta = KIND_META[data.kind] ?? KIND_META.agent;
   const Icon = data.icon ?? meta.Icon;
 
   return (
-    <div className={`arch-node arch-node--${data.kind} ${selected ? 'is-selected' : ''}`}>
+    <div className={`arch-node arch-node--${data.kind} ${selected ? 'is-selected' : ''} ${data.dynamic ? 'is-dynamic' : ''}`}>
       <Handle id="left" type="target" position={Position.Left} className="handle" />
       <Handle id="top" type="target" position={Position.Top} className="handle" />
+      {data.dynamic ? <div className="arch-node__flag">recomputed</div> : null}
       <div className="arch-node__icon" aria-hidden="true">
         <Icon size={24} strokeWidth={2.4} />
       </div>
@@ -76,13 +115,14 @@ function OrchestrationBandNode({ data }) {
 }
 
 function CaptionNode({ data }) {
+  return <div className={`caption-node caption-node--${data.variant ?? 'default'}`}>{data.title}</div>;
+}
+
+function SupportBusNode({ data }) {
   return (
-    <div className="caption-node">
-      <Handle id="top" type="target" position={Position.Top} className="handle" />
-      <Handle id="left" type="target" position={Position.Left} className="handle" />
-      {data.title}
-      <Handle id="right" type="source" position={Position.Right} className="handle" />
-      <Handle id="bottom" type="source" position={Position.Bottom} className="handle" />
+    <div className="support-bus-node">
+      <div className="support-bus-node__line" />
+      <div className="support-bus-node__label">{data.title}</div>
     </div>
   );
 }
@@ -91,6 +131,7 @@ const nodeTypes = {
   architecture: ArchitectureNode,
   orchestrationBand: OrchestrationBandNode,
   caption: CaptionNode,
+  supportBus: SupportBusNode,
 };
 
 function iconForAgent(agentName) {
@@ -129,6 +170,30 @@ function shortList(items, max = 3) {
   return items.slice(0, max).join(' · ') + (items.length > max ? ' · …' : '');
 }
 
+function supportFor(patternKey, pattern) {
+  const specific = SUPPORT_CONTENT[patternKey] ?? SUPPORT_CONTENT.token;
+  return {
+    data: [
+      'Data',
+      shortList(pattern.context, 3),
+      `Controlled enterprise/context data selected for this mission:\n${pattern.context.map((item) => `• ${item}`).join('\n')}`,
+    ],
+    memory: specific.memory,
+    rules: specific.rules,
+    tools: [
+      'Tools / Services',
+      shortList(pattern.tools, 3),
+      `Deterministic services, engineering tools or NVIDIA platform calls selected for this mission:\n${pattern.tools.map((tool) => `• ${tool}`).join('\n')}`,
+    ],
+    llms: specific.llms,
+    harness: [
+      'Harness',
+      shortList(pattern.gates, 3),
+      `Mandatory controls selected for this mission:\n${pattern.gates.map((gate) => `• ${gate}`).join('\n')}`,
+    ],
+  };
+}
+
 function edge(id, source, target, options = {}) {
   const {
     label = '',
@@ -136,8 +201,7 @@ function edge(id, source, target, options = {}) {
     sourceHandle = 'right',
     targetHandle = 'left',
     color = animated ? '#76b900' : '#66727d',
-    zIndex = animated ? 4 : 3,
-    type = 'straight',
+    zIndex = animated ? 1 : 3,
   } = options;
 
   return {
@@ -148,9 +212,9 @@ function edge(id, source, target, options = {}) {
     animated,
     sourceHandle,
     targetHandle,
-    type,
+    type: 'straight',
     markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color },
-    style: { stroke: color, strokeWidth: animated ? 2.7 : 1.8 },
+    style: { stroke: color, strokeWidth: animated ? 2.6 : 1.8 },
     labelStyle: { fill: '#edf6ff', fontSize: 10.5, fontWeight: 900 },
     labelBgStyle: { fill: '#071018', fillOpacity: 0.96 },
     labelBgPadding: [7, 4],
@@ -164,7 +228,14 @@ function makeNode(id, kind, title, subtitle, details, x, y, opts = {}) {
   return {
     id,
     type: opts.type ?? 'architecture',
-    data: { kind, title, subtitle, details, icon: opts.icon },
+    data: {
+      kind,
+      title,
+      subtitle,
+      details,
+      icon: opts.icon,
+      dynamic: opts.dynamic ?? false,
+    },
     position: { x, y },
     width: size.width,
     height: size.height,
@@ -177,10 +248,26 @@ function makeNode(id, kind, title, subtitle, details, x, y, opts = {}) {
   };
 }
 
-function buildGraph(pattern) {
+function makeCaption(id, title, x, y, width, variant = 'default') {
+  return {
+    id,
+    type: 'caption',
+    data: { title, variant },
+    position: { x, y },
+    draggable: false,
+    selectable: false,
+    focusable: false,
+    style: { width, height: 32, zIndex: 12 },
+  };
+}
+
+function buildGraph(pattern, patternKey) {
   const visibleAgents = pattern.agents.slice(0, 5);
-  const agentX = [20, 342, 664, 986, 1308];
-  const supportX = [20, 300, 580, 860, 1140, 1420];
+  const support = supportFor(patternKey, pattern);
+  const agentX = [30, 388, 746, 1104, 1462];
+  const supportX = [30, 334, 638, 942, 1246, 1550];
+  const agentY = 470;
+  const supportY = 760;
 
   const nodes = [
     {
@@ -191,47 +278,29 @@ function buildGraph(pattern) {
       draggable: false,
       selectable: false,
       focusable: false,
-      style: { width: 1830, height: 655, zIndex: 1 },
+      style: { width: 1960, height: 650, zIndex: 6 },
     },
+    makeCaption('delegate-caption', 'delegates to specialized agents', 795, 286, 310, 'green'),
+    makeCaption('dynamic-caption', 'Data · Memory · Rules · Tools · LLMs · Harness are recomputed for this intent', 525, 692, 790, 'support'),
     {
-      id: 'delegate-caption',
-      type: 'caption',
-      data: { title: 'delegates to specialized agents' },
-      position: { x: 710, y: 278 },
+      id: 'support-bus',
+      type: 'supportBus',
+      data: { title: 'shared support layer used by every specialized agent' },
+      position: { x: 110, y: 714 },
       draggable: false,
       selectable: false,
       focusable: false,
-      style: { width: 270, height: 32, zIndex: 7 },
-    },
-    {
-      id: 'support-caption',
-      type: 'caption',
-      data: { title: 'shared support layer used by all agents' },
-      position: { x: 685, y: 660 },
-      draggable: false,
-      selectable: false,
-      focusable: false,
-      style: { width: 330, height: 32, zIndex: 7 },
-    },
-    {
-      id: 'evidence-caption',
-      type: 'caption',
-      data: { title: 'agent outputs → evidence / harness' },
-      position: { x: 700, y: 612 },
-      draggable: false,
-      selectable: false,
-      focusable: false,
-      style: { width: 310, height: 32, zIndex: 7 },
+      style: { width: 1630, height: 34, zIndex: 5 },
     },
     makeNode(
       'intent',
       'intent',
       pattern.intentLabel,
       'Natural-language mission request',
-      'One intent starts the process. The Super Agent interprets it and selects the orchestration pattern, data, agents, tools, LLMs and harness controls.',
+      'One intent starts the process. The Super Agent interprets it and selects the orchestration pattern, data, memory, rules, tools, LLMs and harness controls.',
       20,
       35,
-      { zIndex: 5 },
+      { zIndex: 10 },
     ),
     makeNode(
       'super',
@@ -239,9 +308,9 @@ function buildGraph(pattern) {
       'AI Factory Super Agent',
       'Planning and orchestration',
       'The single mission orchestrator. It decomposes the intent, selects specialized agents, calls NVIDIA tools and LLM services, checks rules, and assembles the governed outcome package.',
-      690,
+      760,
       25,
-      { icon: Sparkles, zIndex: 5 },
+      { icon: Sparkles, zIndex: 10 },
     ),
     makeNode(
       'outcome',
@@ -249,9 +318,9 @@ function buildGraph(pattern) {
       pattern.outcomeTitle,
       'Governed outcome package',
       pattern.outcome,
-      1360,
+      1510,
       35,
-      { icon: CheckCircle2, zIndex: 5 },
+      { icon: CheckCircle2, zIndex: 10 },
     ),
     ...visibleAgents.map((agent, index) =>
       makeNode(
@@ -261,75 +330,21 @@ function buildGraph(pattern) {
         agent.role,
         `${agent.role}\n\nInput: ${agent.input}\n\nOutput: ${agent.output}\n\nNVIDIA call: ${agent.nvidia}\n\nEvidence returned: ${agent.evidence}`,
         agentX[index],
-        480,
-        { icon: iconForAgent(agent.name), zIndex: 6 },
+        agentY,
+        { icon: iconForAgent(agent.name), dynamic: true, zIndex: 10 },
       ),
     ),
-    makeNode(
-      'data',
-      'data',
-      'Data',
-      shortList(pattern.context, 3),
-      `Controlled enterprise/context data used to ground the mission:\n${pattern.context.map((item) => `• ${item}`).join('\n')}`,
-      supportX[0],
-      755,
-      { zIndex: 6 },
-    ),
-    makeNode(
-      'memory',
-      'memory',
-      'Memory / RAG',
-      'prior cases · lessons · retrieval',
-      'Long-lived reusable knowledge and retrieval layer: previous AI Factory records, lessons learned, indexed DSX content, similarity search and evidence reranking.',
-      supportX[1],
-      755,
-      { zIndex: 6 },
-    ),
-    makeNode(
-      'rules',
-      'rules',
-      'Rules',
-      'DSX · OCP · deviations',
-      'Explicit rules and constraints: DSX baseline logic, OCP or domain best practices, deviation policies and approval requirements.',
-      supportX[2],
-      755,
-      { zIndex: 6 },
-    ),
-    makeNode(
-      'tools',
-      'tool',
-      'Tools / Services',
-      shortList(pattern.tools, 3),
-      `Deterministic services, engineering tools or NVIDIA platform calls selected for this mission:\n${pattern.tools.map((tool) => `• ${tool}`).join('\n')}`,
-      supportX[3],
-      755,
-      { zIndex: 6 },
-    ),
-    makeNode(
-      'llms',
-      'llm',
-      'LLMs',
-      'NIM reasoning · report generation',
-      'Reasoning and generation models called by the specialized agents, typically exposed through NVIDIA NIM-hosted services or equivalent controlled endpoints.',
-      supportX[4],
-      755,
-      { zIndex: 6 },
-    ),
-    makeNode(
-      'harness',
-      'harness',
-      'Harness',
-      'schema · evidence · approvals',
-      `Mandatory controls for this mission:\n${pattern.gates.map((gate) => `• ${gate}`).join('\n')}`,
-      supportX[5],
-      755,
-      { zIndex: 6 },
-    ),
+    makeNode('data', 'data', support.data[0], support.data[1], support.data[2], supportX[0], supportY, { dynamic: true, zIndex: 10 }),
+    makeNode('memory', 'memory', support.memory[0], support.memory[1], support.memory[2], supportX[1], supportY, { dynamic: true, zIndex: 10 }),
+    makeNode('rules', 'rules', support.rules[0], support.rules[1], support.rules[2], supportX[2], supportY, { dynamic: true, zIndex: 10 }),
+    makeNode('tools', 'tool', support.tools[0], support.tools[1], support.tools[2], supportX[3], supportY, { dynamic: true, zIndex: 10 }),
+    makeNode('llms', 'llm', support.llms[0], support.llms[1], support.llms[2], supportX[4], supportY, { dynamic: true, zIndex: 10 }),
+    makeNode('harness', 'harness', support.harness[0], support.harness[1], support.harness[2], supportX[5], supportY, { dynamic: true, zIndex: 10 }),
   ];
 
   const edges = [
-    edge('intent-super', 'intent', 'super', { label: 'mission', animated: true, zIndex: 5 }),
-    edge('super-outcome', 'super', 'outcome', { label: 'governed package', animated: true, zIndex: 5 }),
+    edge('intent-super', 'intent', 'super', { label: 'mission', animated: true, zIndex: 4 }),
+    edge('super-outcome', 'super', 'outcome', { label: 'governed package', animated: true, zIndex: 4 }),
     edge('data-memory', 'data', 'memory', { label: 'index', color: '#f5a400', zIndex: 4 }),
     edge('memory-rules', 'memory', 'rules', { label: 'retrieve', zIndex: 4 }),
     edge('rules-tools', 'rules', 'tools', { label: 'constrain', color: '#f5a400', zIndex: 4 }),
@@ -340,7 +355,7 @@ function buildGraph(pattern) {
       sourceHandle: 'right',
       targetHandle: 'bottom',
       label: 'approve',
-      zIndex: 5,
+      zIndex: 4,
     }),
   ];
 
@@ -352,52 +367,32 @@ function buildGraph(pattern) {
         targetHandle: 'top',
         zIndex: 0,
       }),
-      edge(`agent-output-${index}`, `agent-${index}`, 'evidence-caption', {
-        sourceHandle: 'bottom',
-        targetHandle: 'top',
-        zIndex: 3,
-      }),
     );
   });
-
-  edges.push(
-    edge('output-harness', 'evidence-caption', 'harness', {
-      sourceHandle: 'right',
-      targetHandle: 'top',
-      label: 'evidence',
-      color: '#76b900',
-      zIndex: 4,
-    }),
-    edge('support-data', 'support-caption', 'data', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
-    edge('support-memory', 'support-caption', 'memory', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
-    edge('support-rules', 'support-caption', 'rules', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
-    edge('support-tools', 'support-caption', 'tools', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
-    edge('support-llms', 'support-caption', 'llms', { sourceHandle: 'bottom', targetHandle: 'top', zIndex: 2 }),
-  );
 
   return { nodes, edges };
 }
 
 function sizeForKind(kind) {
-  if (kind === 'super' || kind === 'outcome') return { width: 360, height: 130 };
-  if (kind === 'intent') return { width: 340, height: 118 };
-  if (kind === 'agent') return { width: 292, height: 124 };
+  if (kind === 'super' || kind === 'outcome') return { width: 380, height: 130 };
+  if (kind === 'intent') return { width: 360, height: 118 };
+  if (kind === 'agent') return { width: 318, height: 126 };
   if (kind === 'data' || kind === 'memory' || kind === 'rules' || kind === 'tool' || kind === 'llm' || kind === 'harness') {
-    return { width: 250, height: 118 };
+    return { width: 272, height: 120 };
   }
   return { width: 300, height: 112 };
 }
 
-function ArchitectureFlow({ pattern, onSelectNode }) {
+function ArchitectureFlow({ pattern, patternKey, onSelectNode }) {
   const reactFlow = useReactFlow();
-  const graph = useMemo(() => buildGraph(pattern), [pattern]);
+  const graph = useMemo(() => buildGraph(pattern, patternKey), [pattern, patternKey]);
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
 
   const fit = useCallback(
     (duration = 500) => {
       requestAnimationFrame(() => {
-        reactFlow.fitView({ padding: 0.06, duration, includeHiddenNodes: false, minZoom: 0.38, maxZoom: 0.9 });
+        reactFlow.fitView({ padding: 0.05, duration, includeHiddenNodes: false, minZoom: 0.36, maxZoom: 0.88 });
       });
     },
     [reactFlow],
@@ -427,9 +422,9 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
         if (selectedNode.data?.details) onSelectNode(selectedNode.data);
       }}
       fitView
-      fitViewOptions={{ padding: 0.06, minZoom: 0.38, maxZoom: 0.9 }}
-      minZoom={0.28}
-      maxZoom={1.55}
+      fitViewOptions={{ padding: 0.05, minZoom: 0.36, maxZoom: 0.88 }}
+      minZoom={0.25}
+      maxZoom={1.7}
       snapToGrid
       snapGrid={[12, 12]}
       proOptions={{ hideAttribution: true }}
@@ -439,7 +434,7 @@ function ArchitectureFlow({ pattern, onSelectNode }) {
       <Controls className="rf-controls" showInteractive={false} />
       <Panel position="top-left" className="diagram-panel">
         <button onClick={() => fit(550)} type="button">Fit view</button>
-        <span>One intent → one Super Agent → one outcome · straight links · shared support layer</span>
+        <span>Dynamic nodes highlight what changes when the intent or orchestration pattern changes</span>
       </Panel>
     </ReactFlow>
   );
@@ -458,6 +453,11 @@ function AppShell() {
   const selectedKey = patternKey === 'auto' ? detectPattern(intent) : patternKey;
   const pattern = ORCHESTRATION_PATTERNS[selectedKey] ?? ORCHESTRATION_PATTERNS.token;
   const visibleAgents = pattern.agents.slice(0, 5);
+  const support = supportFor(selectedKey, pattern);
+
+  useEffect(() => {
+    setSelectedNode(null);
+  }, [selectedKey]);
 
   const showToast = useCallback((message) => {
     setToast(message);
@@ -471,7 +471,10 @@ function AppShell() {
       outcome: pattern.outcomeTitle,
       specializedAgents: pattern.agents,
       data: pattern.context,
-      toolsAndLLMs: pattern.tools,
+      memory: support.memory,
+      rules: support.rules,
+      toolsAndServices: pattern.tools,
+      llms: support.llms,
       harnessGates: pattern.gates,
     };
     try {
@@ -480,7 +483,7 @@ function AppShell() {
     } catch {
       showToast('Clipboard blocked');
     }
-  }, [intent, pattern, selectedKey, showToast]);
+  }, [intent, pattern, selectedKey, showToast, support]);
 
   const loadExample = () => {
     setPatternKey('auto');
@@ -542,12 +545,12 @@ function AppShell() {
           <div className="diagram-header">
             <div>
               <h2>{pattern.label}</h2>
-              <p>Intent → Super Agent → Outcome at the top. Below: specialized agents, shared support layer and evidence/harness controls.</p>
+              <p>Intent → Super Agent → Outcome at the top. Below: specialized agents and a dynamic support layer for data, memory, rules, tools, LLMs and harness.</p>
             </div>
             <span className="active-badge">{pattern.short}</span>
           </div>
           <div className="flow-wrap">
-            <ArchitectureFlow pattern={pattern} onSelectNode={setSelectedNode} />
+            <ArchitectureFlow pattern={pattern} patternKey={selectedKey} onSelectNode={setSelectedNode} />
           </div>
         </div>
 
@@ -563,6 +566,18 @@ function AppShell() {
           <div className="card side-card selected-card">
             <h3>{selectedNode?.title ?? 'Selected block'}</h3>
             <p>{selectedNode?.details ?? 'Click a block in the diagram to inspect its role, inputs, outputs, NVIDIA calls and evidence returned.'}</p>
+          </div>
+
+          <div className="card side-card dynamic-card">
+            <h3>What changes with this intent</h3>
+            <ul className="dynamic-list">
+              <li><strong>Data:</strong> {shortList(pattern.context, 4)}</li>
+              <li><strong>Memory:</strong> {support.memory[1]}</li>
+              <li><strong>Rules:</strong> {support.rules[1]}</li>
+              <li><strong>Tools:</strong> {shortList(pattern.tools, 4)}</li>
+              <li><strong>LLMs:</strong> {support.llms[1]}</li>
+              <li><strong>Harness:</strong> {shortList(pattern.gates, 4)}</li>
+            </ul>
           </div>
 
           <div className="card side-card">
