@@ -33,7 +33,7 @@ button, textarea, select { font: inherit; }
 button { border: 0; cursor: pointer; }
 
 .app {
-  width: min(1920px, calc(100vw - 24px));
+  width: min(1960px, calc(100vw - 24px));
   margin: 12px auto 34px;
 }
 .card {
@@ -170,6 +170,7 @@ h1 {
   font-weight: 800;
 }
 .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; }
+
 .workspace-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 430px;
@@ -199,7 +200,7 @@ h1 {
   font-weight: 900;
 }
 .flow-wrap {
-  height: 840px;
+  height: 900px;
   background:
     radial-gradient(circle at 50% 4%, rgba(118, 185, 0, 0.13), transparent 30%),
     radial-gradient(circle at 90% 76%, rgba(32, 211, 255, 0.08), transparent 35%),
@@ -277,8 +278,8 @@ h1 {
 .arch-node--agent { border-color: rgba(255, 90, 79, 0.78); background: rgba(255, 90, 79, 0.13); }
 .arch-node--agent .arch-node__icon { background: linear-gradient(135deg, #e93850, #ff7d3a); clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%); }
 .arch-node--tool { border-color: rgba(245, 164, 0, 0.72); background: rgba(245, 164, 0, 0.12); }
-.arch-node--tool .arch-node__icon { background: #f5a400; }
-.arch-node--llm { border-color: rgba(155, 108, 255, 0.78); background: rgba(155, 108, 255, 0.14); }
+.arch-node--tool .arch-node__icon { color: #061006; background: #f5a400; }
+.arch-node--llm { border-color: rgba(155, 108, 255, 0.8); background: rgba(155, 108, 255, 0.16); }
 .arch-node--llm .arch-node__icon { background: #9b6cff; }
 .arch-node--outcome { border-color: var(--green); background: rgba(118, 185, 0, 0.14); }
 .arch-node--outcome .arch-node__icon { color: #061006; background: var(--green); }
@@ -291,13 +292,14 @@ h1 {
   border: 1.6px solid var(--green);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.018);
+  box-shadow: inset 0 0 0 1px rgba(118, 185, 0, 0.08);
   pointer-events: none;
 }
 .orchestration-band__bar {
   position: absolute;
-  left: 22px;
-  right: 22px;
-  top: 18px;
+  left: 26px;
+  right: 26px;
+  top: 24px;
   height: 36px;
   display: flex;
   align-items: center;
@@ -313,7 +315,7 @@ h1 {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 14px;
+  bottom: 16px;
   color: var(--green-light);
   font-size: 11px;
   font-weight: 950;
@@ -321,10 +323,25 @@ h1 {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.caption-node {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(118, 185, 0, 0.32);
+  border-radius: 999px;
+  background: rgba(5, 8, 11, 0.9);
+  color: #dfffbc;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
 
 .react-flow__edge.animated path { stroke-dasharray: 8 7; }
-.react-flow__edge-text { paint-order: stroke; stroke: #071018; stroke-width: 2px; }
 .react-flow__edge-textbg { rx: 5px; }
+.react-flow__edge-text { paint-order: stroke; stroke: rgba(5, 8, 11, 0.8); stroke-width: 2px; }
 .diagram-panel {
   display: inline-flex;
   align-items: center;
@@ -368,5 +385,5 @@ tr.is-active td { color: #e9f6cf; background: rgba(118, 185, 0, 0.11); }
   .hero-grid, .workspace-grid { grid-template-columns: 1fr; }
   .controls-grid { grid-template-columns: 1fr; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
-  .flow-wrap { height: 760px; }
+  .flow-wrap { height: 860px; }
 }
